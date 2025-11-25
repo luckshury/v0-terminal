@@ -83,32 +83,32 @@ const FillRow = memo(({ fill }: { fill: ProcessedFill }) => {
       </td>
       <td className="p-3 whitespace-nowrap font-mono text-[10px] text-center">
         {fill.user ? (
-          <a 
-            href={`https://flowscan.xyz/account/${fill.user}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-primary hover:text-primary/80 hover:underline transition-colors cursor-pointer"
-            title={fill.user}
+          <button 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open(`https://www.flowscan.xyz/address/${fill.user}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="text-blue-500 underline cursor-pointer bg-transparent border-none p-0 font-mono text-[10px] select-none"
           >
             {fill.user.substring(0, 6)}...{fill.user.substring(fill.user.length - 4)}
-          </a>
+          </button>
         ) : (
           <span className="text-muted-foreground">-</span>
         )}
       </td>
       <td className="p-3 whitespace-nowrap font-mono text-[10px] text-center">
         {fill.hash ? (
-          <a 
-            href={`https://flowscan.xyz/tx/${fill.hash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-primary hover:text-primary/80 hover:underline transition-colors cursor-pointer"
-            title={fill.hash}
+          <button 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open(`https://www.flowscan.xyz/tx/${fill.hash}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="text-blue-500 underline cursor-pointer bg-transparent border-none p-0 font-mono text-[10px] select-none"
           >
             {fill.hash.substring(0, 6)}...{fill.hash.substring(fill.hash.length - 4)}
-          </a>
+          </button>
         ) : (
           <span className="text-muted-foreground">-</span>
         )}
@@ -153,32 +153,32 @@ const OrderRow = memo(({ order }: { order: ProcessedOrderUpdate }) => {
       </td>
       <td className="p-3 whitespace-nowrap font-mono text-[10px] text-center">
         {order.user ? (
-          <a 
-            href={`https://flowscan.xyz/account/${order.user}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-primary hover:text-primary/80 hover:underline transition-colors cursor-pointer"
-            title={order.user}
+          <button 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open(`https://www.flowscan.xyz/address/${order.user}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="text-blue-500 underline cursor-pointer bg-transparent border-none p-0 font-mono text-[10px] select-none"
           >
             {order.user.substring(0, 6)}...{order.user.substring(order.user.length - 4)}
-          </a>
+          </button>
         ) : (
           <span className="text-muted-foreground">-</span>
         )}
       </td>
       <td className="p-3 whitespace-nowrap font-mono text-[10px] text-center">
         {order.hash ? (
-          <a 
-            href={`https://flowscan.xyz/tx/${order.hash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-primary hover:text-primary/80 hover:underline transition-colors cursor-pointer"
-            title={order.hash}
+          <button 
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              window.open(`https://www.flowscan.xyz/tx/${order.hash}`, '_blank', 'noopener,noreferrer');
+            }}
+            className="text-blue-500 underline cursor-pointer bg-transparent border-none p-0 font-mono text-[10px] select-none"
           >
             {order.hash.substring(0, 6)}...{order.hash.substring(order.hash.length - 4)}
-          </a>
+          </button>
         ) : (
           <span className="text-muted-foreground">-</span>
         )}
@@ -334,7 +334,7 @@ export default function InsilicoIntelPage() {
               itemContent={(index, fill) => <FillRow fill={fill} />}
               components={{
                 Table: (props) => <table {...props} className="w-full caption-bottom text-sm border-collapse" />,
-                TableRow: (props) => <tr {...props} className="border-b transition-colors hover:bg-muted/50" />,
+                TableRow: (props) => <tr {...props} className="border-b" />,
               }}
             />
           </div>
@@ -372,7 +372,7 @@ export default function InsilicoIntelPage() {
               itemContent={(index, order) => <OrderRow order={order} />}
               components={{
                 Table: (props) => <table {...props} className="w-full caption-bottom text-sm border-collapse" />,
-                TableRow: (props) => <tr {...props} className="border-b transition-colors hover:bg-muted/50" />,
+                TableRow: (props) => <tr {...props} className="border-b" />,
               }}
             />
           </div>

@@ -280,7 +280,7 @@ curl http://localhost:4200/api/liquidations | jq
 Both pages link wallet addresses to [Flowscan](https://www.flowscan.xyz/):
 ```tsx
 <a 
-  href={`https://www.flowscan.xyz/address/${address}`}
+  href={`https://flowscan.xyz/address/${address}`}
   target="_blank"
   rel="noopener noreferrer"
   className="text-primary hover:text-primary/80 hover:underline"
@@ -361,5 +361,6 @@ curl http://localhost:4200/api/all-fills | jq '.fills | length'
 - Check browser console for fetch errors
 - Verify polling interval is active
 - Check API response times (should be < 10ms)
+
 
 

@@ -1039,7 +1039,7 @@ export default function L4OrdersPage() {
                 <tbody>
                   {displayedOrders.map((order, idx) => (
                     <tr key={order.orderId} className={cn(
-                      "border-b border-border/50 hover:bg-muted/50",
+                      "border-b border-border/50",
                       idx % 2 === 0 && "bg-muted/20"
                     )}>
                       <td className="px-4 py-3 text-xs">{order.orderId.substring(0, 12)}...</td>

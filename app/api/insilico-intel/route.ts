@@ -89,53 +89,110 @@ const MAX_ITEMS = 2500; // Store 2500 of each type
 function connectWebSocket() {
   if (ws?.readyState === WebSocket.OPEN) {
     console.log('✅ Insilico Intel WebSocket already connected');
+    isConnected = true;
     return;
   }
 
+  // Clean up existing connection if any
+  if (ws) {
+    try {
+      ws.removeAllListeners();
+      if (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+    } catch (e) {
+      console.error('Error cleaning up old WebSocket:', e);
+    }
+    ws = null;
+  }
+
   console.log('🔌 Connecting to Hydromancer WebSocket for Insilico Intel...');
-  ws = new WebSocket('wss://api.hydromancer.xyz/ws');
+  isConnected = false;
+  
+  let connectionTimeout: NodeJS.Timeout | null = null;
+  
+  try {
+    ws = new WebSocket('wss://api.hydromancer.xyz/ws');
 
-  ws.on('open', () => {
-    console.log('✅ Insilico Intel WebSocket opened, authenticating...');
-    ws?.send(JSON.stringify({
-      type: 'auth',
-      apiKey: 'sk_nNhuLkdGdW5sxnYec33C2FBPzLjXBnEd'
-    }));
-  });
+    // Add connection timeout
+    connectionTimeout = setTimeout(() => {
+      if (ws && ws.readyState !== WebSocket.OPEN && !isConnected) {
+        console.error('❌ Insilico Intel WebSocket connection timeout');
+        try {
+          ws.close();
+        } catch (e) {
+          console.error('Error closing timed out connection:', e);
+        }
+      }
+    }, 10000); // 10 second timeout
 
-  ws.on('message', (data: Buffer) => {
+    ws.on('open', () => {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
+      console.log('✅ Insilico Intel WebSocket opened, authenticating...');
+      try {
+        ws?.send(JSON.stringify({
+          type: 'auth',
+          apiKey: 'sk_nNhuLkdGdW5sxnYec33C2FBPzLjXBnEd'
+        }));
+      } catch (e) {
+        console.error('❌ Error sending auth:', e);
+        isConnected = false;
+      }
+    });
+
+    ws.on('message', (data: Buffer) => {
     try {
       const msg = JSON.parse(data.toString());
 
       if (msg.type === 'connected') {
         console.log('✅ Insilico Intel authenticated! Subscribing to builder streams...');
+        console.log(`📋 Builder address: ${BUILDER_ADDRESS}`);
         isConnected = true;
         
-        // Subscribe to builderFills
-        ws?.send(JSON.stringify({
-          type: 'subscribe',
-          subscription: {
-            type: 'builderFills',
-            builder: BUILDER_ADDRESS
-          }
-        }));
-        
-        // Subscribe to builderOrderUpdates
-        ws?.send(JSON.stringify({
-          type: 'subscribe',
-          subscription: {
-            type: 'builderOrderUpdates',
-            builder: BUILDER_ADDRESS
-          }
-        }));
+        try {
+          // Subscribe to builderFills
+          const fillsSub = {
+            type: 'subscribe',
+            subscription: {
+              type: 'builderFills',
+              builder: BUILDER_ADDRESS
+            }
+          };
+          console.log('📤 Sending builderFills subscription:', JSON.stringify(fillsSub));
+          ws?.send(JSON.stringify(fillsSub));
+          
+          // Subscribe to builderOrderUpdates
+          const ordersSub = {
+            type: 'subscribe',
+            subscription: {
+              type: 'builderOrderUpdates',
+              builder: BUILDER_ADDRESS
+            }
+          };
+          console.log('📤 Sending builderOrderUpdates subscription:', JSON.stringify(ordersSub));
+          ws?.send(JSON.stringify(ordersSub));
+          console.log('✅ Insilico Intel subscriptions sent');
+        } catch (e) {
+          console.error('❌ Error sending subscriptions:', e);
+          isConnected = false;
+        }
       } else if (msg.type === 'subscriptionUpdate') {
-        console.log('📊 Insilico Intel subscription update:', msg);
+        console.log('📊 Insilico Intel subscription update:', JSON.stringify(msg, null, 2));
+        // Ensure we're marked as connected if we receive subscription updates
+        if (ws?.readyState === WebSocket.OPEN) {
+          isConnected = true;
+          console.log('✅ Insilico Intel subscription confirmed, connection active');
+        }
       } else if (msg.type === 'error') {
-        console.error('❌ Insilico Intel WS Error:', msg);
+        console.error('❌ Insilico Intel WS Error:', JSON.stringify(msg, null, 2));
         isConnected = false;
       } else if (msg.type === 'builderFills') {
         // builderFills subscription sends messages with type "builderFills"
         console.log(`⚡ Received ${msg.fills?.length || 0} builder fills`);
+        // Mark as connected when we receive data
+        if (ws?.readyState === WebSocket.OPEN) {
+          isConnected = true;
+        }
         
         const newFills: ProcessedFill[] = [];
         
@@ -172,6 +229,10 @@ function connectWebSocket() {
         }
       } else if (msg.type === 'builderOrderUpdates') {
         console.log(`⚡ Received ${msg.updates?.length || 0} builder order updates`);
+        // Mark as connected when we receive data
+        if (ws?.readyState === WebSocket.OPEN) {
+          isConnected = true;
+        }
         
         const newOrders: ProcessedOrderUpdate[] = [];
         
@@ -210,20 +271,29 @@ function connectWebSocket() {
     }
   });
 
-  ws.on('close', () => {
-    console.log('🔌 Insilico Intel WebSocket closed, will reconnect in 5s...');
-    isConnected = false;
-    
-    if (reconnectTimeout) clearTimeout(reconnectTimeout);
-    reconnectTimeout = setTimeout(() => {
-      connectWebSocket();
-    }, 5000);
-  });
+    ws.on('close', (code, reason) => {
+      if (connectionTimeout) clearTimeout(connectionTimeout);
+      console.log(`🔌 Insilico Intel WebSocket closed (code: ${code}, reason: ${reason?.toString() || 'unknown'}), will reconnect in 5s...`);
+      isConnected = false;
+      ws = null;
+      
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(() => {
+        console.log('🔄 Attempting to reconnect Insilico Intel WebSocket...');
+        connectWebSocket();
+      }, 5000);
+    });
 
-  ws.on('error', (error) => {
-    console.error('❌ Insilico Intel WebSocket error:', error);
+    ws.on('error', (error) => {
+      console.error('❌ Insilico Intel WebSocket error:', error.message || error);
+      isConnected = false;
+      // Don't close here, let the 'close' event handle cleanup
+    });
+  } catch (e) {
+    console.error('❌ Error creating WebSocket:', e);
     isConnected = false;
-  });
+    if (connectionTimeout) clearTimeout(connectionTimeout);
+  }
 }
 
 // Initialize WebSocket connection when module loads
@@ -231,8 +301,10 @@ connectWebSocket();
 
 // Keep connection alive
 setInterval(() => {
-  if (ws?.readyState !== WebSocket.OPEN) {
-    console.log('🔄 Insilico Intel WebSocket not open, reconnecting...');
+  const currentState = ws?.readyState;
+  if (currentState !== WebSocket.OPEN) {
+    console.log(`🔄 Insilico Intel WebSocket not open (state: ${currentState}), reconnecting...`);
+    isConnected = false;
     connectWebSocket();
   }
 }, 30000);

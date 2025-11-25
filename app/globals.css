@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import 'dockview-react/dist/styles/dockview.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -244,4 +245,107 @@ a {
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+/* Dockview custom theming to match app aesthetic */
+.dockview-theme-abyss {
+  --dv-background-color: var(--background);
+  --dv-paneview-header-border-color: var(--border);
+  --dv-tabs-and-actions-container-background-color: var(--card);
+  --dv-activegroup-visiblepanel-tab-background-color: var(--primary);
+  --dv-activegroup-hiddenpanel-tab-background-color: var(--muted);
+  --dv-inactivegroup-visiblepanel-tab-background-color: var(--muted);
+  --dv-inactivegroup-hiddenpanel-tab-background-color: var(--muted);
+  --dv-tab-divider-color: var(--border);
+  --dv-activegroup-visiblepanel-tab-color: var(--primary-foreground);
+  --dv-activegroup-hiddenpanel-tab-color: var(--muted-foreground);
+  --dv-inactivegroup-visiblepanel-tab-color: var(--foreground);
+  --dv-inactivegroup-hiddenpanel-tab-color: var(--muted-foreground);
+  --dv-separator-border: var(--border);
+  --dv-drag-over-background-color: var(--accent);
+  --dv-drag-over-border-color: var(--primary);
+  --dv-group-view-background-color: var(--card);
+  --dv-tabs-container-scrollbar-color: var(--muted);
+  
+  font-family: var(--font-mono);
+}
+
+.dockview-theme-abyss .groupview {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.dockview-theme-abyss .groupview.active-group {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.dockview-theme-abyss .tabs-and-actions-container {
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+  min-height: 32px;
+}
+
+.dockview-theme-abyss .tab {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0 12px;
+  border-radius: 0;
+  transition: background-color 0.15s ease;
+}
+
+.dockview-theme-abyss .tab:hover {
+  background: var(--accent);
+}
+
+.dockview-theme-abyss .tab.active-tab {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.dockview-theme-abyss .tab.inactive-tab {
+  color: var(--muted-foreground);
+}
+
+.dockview-theme-abyss .content-container {
+  background: var(--card);
+}
+
+.dockview-theme-abyss .split-view-container > .sash {
+  background: transparent;
+}
+
+.dockview-theme-abyss .split-view-container > .sash:hover {
+  background: var(--primary);
+}
+
+.dockview-theme-abyss .split-view-container > .sash.active {
+  background: var(--primary);
+}
+
+/* Dockview watermark / empty state */
+.dockview-theme-abyss .watermark {
+  background: var(--background);
+  color: var(--muted-foreground);
+}
+
+/* Tab close button */
+.dockview-theme-abyss .tab .dv-default-tab-action {
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.dockview-theme-abyss .tab:hover .dv-default-tab-action {
+  opacity: 1;
+}
+
+/* Drag and drop overlay */
+.dockview-theme-abyss .drop-target-dropzone {
+  background: var(--accent);
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius);
 }

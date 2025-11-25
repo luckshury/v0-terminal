@@ -12,14 +12,17 @@ export interface HourlyCandle {
 export interface DailyPivot {
   date: string
   dayOfWeek: number // 0 = Sunday, 6 = Saturday
+  open: number
   high: number
   low: number
   highHour: number // Hour when high occurred
   lowHour: number // Hour when low occurred
   p1Type: 'high' | 'low' // Which came first
   p1Hour: number
+  p1Price: number
   p2Type: 'high' | 'low'
   p2Hour: number
+  p2Price: number
 }
 
 export interface HourlyStats {
@@ -31,6 +34,35 @@ export interface HourlyStats {
   p2Probability: number
   lastP1DaysAgo: number | null
   lastP2DaysAgo: number | null
+}
+
+export interface WeeklyPivot {
+  weekStart: string // ISO format date of Monday
+  weekEnd: string // ISO format date of Sunday
+  weekNumber: number
+  year: number
+  open: number
+  high: number
+  low: number
+  highDay: number // Day of week when high occurred (0-6)
+  lowDay: number // Day of week when low occurred (0-6)
+  p1Type: 'high' | 'low' // Which came first
+  p1Day: number
+  p1Price: number
+  p2Type: 'high' | 'low'
+  p2Day: number
+  p2Price: number
+}
+
+export interface DailyStats {
+  day: number // Day of week (0-6)
+  p1Count: number
+  p2Count: number
+  totalWeeks: number
+  p1Probability: number
+  p2Probability: number
+  lastP1WeeksAgo: number | null
+  lastP2WeeksAgo: number | null
 }
 
 /**
@@ -124,14 +156,17 @@ export function calculateDailyPivots(hourlyCandles: HourlyCandle[]): DailyPivot[
     pivots.push({
       date: dateKey,
       dayOfWeek: date.getUTCDay(),
+      open: candles[0].open,
       high: dailyHigh,
       low: dailyLow,
       highHour: firstHighHour,
       lowHour: firstLowHour,
       p1Type: highCameFirst ? 'high' : 'low',
       p1Hour: highCameFirst ? firstHighHour : firstLowHour,
+      p1Price: highCameFirst ? dailyHigh : dailyLow,
       p2Type: highCameFirst ? 'low' : 'high',
       p2Hour: highCameFirst ? firstLowHour : firstHighHour,
+      p2Price: highCameFirst ? dailyLow : dailyHigh,
     })
   })
   
@@ -244,6 +279,186 @@ export function adjustForCurrentDay(
       p2Probability: totalP2 > 0 ? (stat.p2Count / totalP2) * 100 : 0,
     }
   })
+}
+
+/**
+ * Helper to get Monday of the week for a given date
+ */
+function getMondayOfWeek(date: Date): Date {
+  const d = new Date(date)
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day // Adjust when day is Sunday
+  d.setUTCDate(d.getUTCDate() + diff)
+  d.setUTCHours(0, 0, 0, 0)
+  return d
+}
+
+/**
+ * Helper to get ISO week number
+ */
+function getISOWeek(date: Date): { week: number; year: number } {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+  return { week: weekNo, year: d.getUTCFullYear() }
+}
+
+/**
+ * Groups daily pivots into weekly pivots
+ */
+export function calculateWeeklyPivots(dailyPivots: DailyPivot[]): WeeklyPivot[] {
+  if (dailyPivots.length === 0) return []
+  
+  // Group daily pivots by week
+  const weeklyGroups = new Map<string, DailyPivot[]>()
+  
+  dailyPivots.forEach(pivot => {
+    const date = new Date(pivot.date + 'T00:00:00Z')
+    const monday = getMondayOfWeek(date)
+    const weekKey = monday.toISOString().split('T')[0]
+    
+    if (!weeklyGroups.has(weekKey)) {
+      weeklyGroups.set(weekKey, [])
+    }
+    weeklyGroups.get(weekKey)!.push(pivot)
+  })
+  
+  const weeklyPivots: WeeklyPivot[] = []
+  
+  // Calculate weekly pivots
+  weeklyGroups.forEach((pivots, weekStart) => {
+    if (pivots.length === 0) return
+    
+    // Sort by date
+    pivots.sort((a, b) => a.date.localeCompare(b.date))
+    
+    // Find weekly high and low
+    const weeklyHigh = Math.max(...pivots.map(p => p.high))
+    const weeklyLow = Math.min(...pivots.map(p => p.low))
+    
+    // Find which day of week had the high and low (first occurrence)
+    let highDay = -1
+    let lowDay = -1
+    let highTimestamp = Infinity
+    let lowTimestamp = Infinity
+    
+    for (const pivot of pivots) {
+      const pivotDate = new Date(pivot.date + 'T00:00:00Z')
+      const timestamp = pivotDate.getTime()
+      
+      if (highDay === -1 && pivot.high >= weeklyHigh) {
+        highDay = pivot.dayOfWeek
+        highTimestamp = timestamp
+      }
+      
+      if (lowDay === -1 && pivot.low <= weeklyLow) {
+        lowDay = pivot.dayOfWeek
+        lowTimestamp = timestamp
+      }
+      
+      if (highDay !== -1 && lowDay !== -1) break
+    }
+    
+    // Determine P1 and P2
+    const highCameFirst = highTimestamp < lowTimestamp
+    
+    const weekStartDate = new Date(weekStart + 'T00:00:00Z')
+    const weekEndDate = new Date(weekStartDate)
+    weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6)
+    
+    const { week, year } = getISOWeek(weekStartDate)
+    
+    weeklyPivots.push({
+      weekStart,
+      weekEnd: weekEndDate.toISOString().split('T')[0],
+      weekNumber: week,
+      year,
+      open: pivots[0].open,
+      high: weeklyHigh,
+      low: weeklyLow,
+      highDay,
+      lowDay,
+      p1Type: highCameFirst ? 'high' : 'low',
+      p1Day: highCameFirst ? highDay : lowDay,
+      p1Price: highCameFirst ? weeklyHigh : weeklyLow,
+      p2Type: highCameFirst ? 'low' : 'high',
+      p2Day: highCameFirst ? lowDay : highDay,
+      p2Price: highCameFirst ? weeklyLow : weeklyHigh,
+    })
+  })
+  
+  return weeklyPivots.sort((a, b) => a.weekStart.localeCompare(b.weekStart))
+}
+
+/**
+ * Calculate daily statistics from weekly pivots (similar to calculateHourlyStats but for days)
+ */
+export function calculateDailyStats(
+  weeklyPivots: WeeklyPivot[]
+): DailyStats[] {
+  const totalWeeks = weeklyPivots.length
+  
+  // Initialize stats for each day of week (0 = Sunday, 6 = Saturday)
+  const stats: Map<number, {
+    p1Count: number
+    p2Count: number
+    lastP1Week: string | null
+    lastP2Week: string | null
+  }> = new Map()
+  
+  for (let day = 0; day < 7; day++) {
+    stats.set(day, {
+      p1Count: 0,
+      p2Count: 0,
+      lastP1Week: null,
+      lastP2Week: null,
+    })
+  }
+  
+  // Count occurrences
+  weeklyPivots.forEach(pivot => {
+    const dayStats = stats.get(pivot.p1Day)!
+    dayStats.p1Count++
+    dayStats.lastP1Week = pivot.weekStart
+    
+    const p2DayStats = stats.get(pivot.p2Day)!
+    p2DayStats.p2Count++
+    p2DayStats.lastP2Week = pivot.weekStart
+  })
+  
+  // Calculate probabilities and weeks ago
+  const latestWeek = weeklyPivots.length > 0
+    ? weeklyPivots[weeklyPivots.length - 1].weekStart
+    : new Date().toISOString().split('T')[0]
+  
+  const result: DailyStats[] = []
+  
+  for (let day = 0; day < 7; day++) {
+    const dayData = stats.get(day)!
+    
+    const lastP1WeeksAgo = dayData.lastP1Week
+      ? Math.floor((new Date(latestWeek).getTime() - new Date(dayData.lastP1Week).getTime()) / (1000 * 60 * 60 * 24 * 7))
+      : null
+    
+    const lastP2WeeksAgo = dayData.lastP2Week
+      ? Math.floor((new Date(latestWeek).getTime() - new Date(dayData.lastP2Week).getTime()) / (1000 * 60 * 60 * 24 * 7))
+      : null
+    
+    result.push({
+      day,
+      p1Count: dayData.p1Count,
+      p2Count: dayData.p2Count,
+      totalWeeks,
+      p1Probability: totalWeeks > 0 ? (dayData.p1Count / totalWeeks) * 100 : 0,
+      p2Probability: totalWeeks > 0 ? (dayData.p2Count / totalWeeks) * 100 : 0,
+      lastP1WeeksAgo,
+      lastP2WeeksAgo,
+    })
+  }
+  
+  return result
 }
 
 export type HeatmapScheme = 'green' | 'viridis' | 'plasma' | 'inferno' | 'turbo' | 'blues'
