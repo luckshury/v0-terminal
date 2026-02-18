@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import WebSocket from 'ws';
 
+const HYDROMANCER_ENABLED = false;
+
 const BUILDER_ADDRESS = '0x2868fc0d9786a740b491577a43502259efa78a39';
 
 // Types for Builder Fills (from Hydromancer docs)
@@ -87,6 +89,10 @@ let reconnectTimeout: NodeJS.Timeout | null = null;
 const MAX_ITEMS = 2500; // Store 2500 of each type
 
 function connectWebSocket() {
+  if (!HYDROMANCER_ENABLED) {
+    console.log('Hydromancer Insilico Intel streams disabled');
+    return;
+  }
   if (ws?.readyState === WebSocket.OPEN) {
     console.log('✅ Insilico Intel WebSocket already connected');
     isConnected = true;
@@ -297,20 +303,31 @@ function connectWebSocket() {
 }
 
 // Initialize WebSocket connection when module loads
-connectWebSocket();
+if (HYDROMANCER_ENABLED) {
+  connectWebSocket();
 
-// Keep connection alive
-setInterval(() => {
-  const currentState = ws?.readyState;
-  if (currentState !== WebSocket.OPEN) {
-    console.log(`🔄 Insilico Intel WebSocket not open (state: ${currentState}), reconnecting...`);
-    isConnected = false;
-    connectWebSocket();
-  }
-}, 30000);
+  // Keep connection alive
+  setInterval(() => {
+    const currentState = ws?.readyState;
+    if (currentState !== WebSocket.OPEN) {
+      console.log(`🔄 Insilico Intel WebSocket not open (state: ${currentState}), reconnecting...`);
+      isConnected = false;
+      connectWebSocket();
+    }
+  }, 30000);
+} else {
+  console.log('Hydromancer Insilico Intel streams disabled');
+}
 
 // API Route Handler
 export async function GET(request: NextRequest) {
+  if (!HYDROMANCER_ENABLED) {
+    return NextResponse.json(
+      { disabled: true, reason: 'Hydromancer builder streams disabled' },
+      { status: 503 }
+    );
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const limit = parseInt(searchParams.get('limit') || '2500');
   

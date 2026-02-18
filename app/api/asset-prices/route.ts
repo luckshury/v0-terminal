@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import WebSocket from 'ws'
 
+const HYDROMANCER_ENABLED = false
 const HYDROMANCER_WS_URL = 'wss://api.hydromancer.xyz/ws'
 const API_KEY = process.env.HYDROMANCER_API_KEY || 'sk_nNhuLkdGdW5sxnYec33C2FBPzLjXBnEd'
 
@@ -180,25 +181,36 @@ function connect() {
   }
 }
 
-// Initialize connection on module load
-connect()
+// Initialize connection on module load only when enabled
+if (HYDROMANCER_ENABLED) {
+  connect()
 
-// Heartbeat to keep connection alive and detect stale connections
-setInterval(() => {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    // Check if we haven't received a message in 30 seconds
-    if (Date.now() - lastMessageTime > 30000) {
-      log('Connection appears stale, reconnecting...')
-      ws.close()
+  // Heartbeat to keep connection alive and detect stale connections
+  setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Check if we haven't received a message in 30 seconds
+      if (Date.now() - lastMessageTime > 30000) {
+        log('Connection appears stale, reconnecting...')
+        ws.close()
+      }
+    } else if (!isConnecting && !isConnected) {
+      log('Connection lost, attempting reconnect...')
+      reconnectAttempts = 0
+      connect()
     }
-  } else if (!isConnecting && !isConnected) {
-    log('Connection lost, attempting reconnect...')
-    reconnectAttempts = 0
-    connect()
-  }
-}, 10000)
+  }, 10000)
+} else {
+  log('Hydromancer asset price stream disabled')
+}
 
 export async function GET(request: Request) {
+  if (!HYDROMANCER_ENABLED) {
+    return NextResponse.json(
+      { disabled: true, reason: 'Hydromancer asset price stream disabled' },
+      { status: 503 }
+    )
+  }
+
   // Check if specific coins are requested
   const { searchParams } = new URL(request.url)
   const requestedCoins = searchParams.get('coins')?.split(',').filter(Boolean) || []
@@ -255,5 +267,10 @@ export async function POST(request: Request) {
     }, { status: 400 })
   }
 }
+
+
+
+
+
 
 

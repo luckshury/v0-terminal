@@ -88,73 +88,14 @@ export function useAllFills(options: UseAllFillsOptions = {}): UseAllFillsResult
     setFills([...fillsRef.current])
   }, [limit])
 
-  // REST API polling - replaces WebSocket connection
+  // REST API polling disabled - no longer fetching fills
   useEffect(() => {
-    let mounted = true
-
-    const fetchFills = async () => {
-      if (!mounted) return
-
-      try {
-        const params = new URLSearchParams({
-          limit: limit.toString(),
-        })
-
-        if (dex) {
-          params.append('dex', dex)
-        }
-
-        if (aggregateByTime) {
-          params.append('aggregateByTime', 'true')
-        }
-
-        const response = await fetch(`${API_URL}?${params.toString()}`)
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch fills: ${response.status}`)
-        }
-
-        const data = await response.json()
-
-        // Note: The REST API doesn't provide real-time fills like WebSocket did
-        // This is a limitation of moving from WebSocket to REST
-        if (data.fills && Array.isArray(data.fills)) {
-          setFills(data.fills)
-          setIsConnected(true)
-          setReconnecting(false)
-          setError(undefined)
-        } else if (data.message) {
-          // API returned a message (likely about WebSocket being required)
-          setError(data.message)
-          setIsConnected(false)
-        }
-
-        const now = Date.now()
-        lastUpdateRef.current = now
-        setLastUpdate(now)
-      } catch (err) {
-        console.error('Error fetching fills:', err)
-        setError('Failed to fetch fills data')
-        setIsConnected(false)
-        setReconnecting(true)
-      }
-    }
-
-    // Initial fetch
-    fetchFills()
-
-    // Set up polling interval (5 seconds)
-    pollingIntervalRef.current = setInterval(() => {
-      fetchFills()
-    }, 5000)
-
-    return () => {
-      mounted = false
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current)
-        pollingIntervalRef.current = null
-      }
-    }
+    console.log('useAllFills: REST API polling disabled')
+    setError('All-fills subscription cancelled')
+    setIsConnected(false)
+    setReconnecting(false)
+    setFills([])
+    return () => {}
   }, [limit, dex, aggregateByTime])
 
   return {

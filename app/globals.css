@@ -2,7 +2,10 @@
 @import 'tw-animate-css';
 @import 'dockview-react/dist/styles/dockview.css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme='dark'] *));
+@custom-variant trade (&:is([data-theme='trade.xyz'] *));
+@custom-variant hyperliquid (&:is([data-theme='hyperliquid.xyz'] *));
+@custom-variant midnight (&:is([data-theme='midnight'] *));
 
 :root {
   --background: oklch(0.98 0 0);
@@ -41,7 +44,7 @@
   --sidebar-muted-foreground: oklch(0.5 0 0);
 }
 
-.dark {
+[data-theme='dark'] {
   --background: oklch(0.12 0 0);
   --foreground: oklch(0.98 0 0);
   --card: oklch(0.15 0 0);
@@ -66,7 +69,6 @@
   --chart-3: oklch(0.7 0.22 200);
   --chart-4: oklch(0.68 0.23 300);
   --chart-5: oklch(0.65 0.25 25);
-  /* Updated dark mode sidebar colors for better terminal aesthetic */
   --sidebar: oklch(0.12 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
   --sidebar-primary: oklch(0.75 0.2 142);
@@ -76,6 +78,114 @@
   --sidebar-border: oklch(0.3 0 0);
   --sidebar-ring: oklch(0.75 0.2 142);
   --sidebar-muted-foreground: oklch(0.6 0 0);
+}
+
+[data-theme='trade.xyz'] {
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(1 0 0);
+  --card: oklch(0.13 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.13 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.6 0.18 270); /* Blueish */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.65 0 0);
+  --accent: oklch(0.6 0.18 270);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.25 0 0);
+  --input: oklch(0.25 0 0);
+  --ring: oklch(0.6 0.18 270);
+  --chart-1: oklch(0.6 0.18 270);
+  --chart-2: oklch(0.65 0.15 200);
+  --chart-3: oklch(0.7 0.12 150);
+  --chart-4: oklch(0.75 0.1 100);
+  --chart-5: oklch(0.8 0.08 50);
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.6 0.18 270);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.25 0 0);
+  --sidebar-ring: oklch(0.6 0.18 270);
+  --sidebar-muted-foreground: oklch(0.65 0 0);
+}
+
+[data-theme='hyperliquid.xyz'] {
+  --background: oklch(0.05 0.02 140); /* Very dark green-ish */
+  --foreground: oklch(0.95 0.05 140);
+  --card: oklch(0.1 0.03 140);
+  --card-foreground: oklch(0.95 0.05 140);
+  --popover: oklch(0.1 0.03 140);
+  --popover-foreground: oklch(0.95 0.05 140);
+  --primary: oklch(0.8 0.2 140); /* Neon Green */
+  --primary-foreground: oklch(0.05 0.02 140);
+  --secondary: oklch(0.2 0.05 140);
+  --secondary-foreground: oklch(0.9 0.05 140);
+  --muted: oklch(0.2 0.05 140);
+  --muted-foreground: oklch(0.7 0.05 140);
+  --accent: oklch(0.8 0.2 140);
+  --accent-foreground: oklch(0.05 0.02 140);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.95 0.05 140);
+  --border: oklch(0.25 0.05 140);
+  --input: oklch(0.25 0.05 140);
+  --ring: oklch(0.8 0.2 140);
+  --chart-1: oklch(0.8 0.2 140);
+  --chart-2: oklch(0.75 0.15 160);
+  --chart-3: oklch(0.7 0.1 180);
+  --chart-4: oklch(0.65 0.05 200);
+  --chart-5: oklch(0.6 0.1 220);
+  --sidebar: oklch(0.05 0.02 140);
+  --sidebar-foreground: oklch(0.95 0.05 140);
+  --sidebar-primary: oklch(0.8 0.2 140);
+  --sidebar-primary-foreground: oklch(0.05 0.02 140);
+  --sidebar-accent: oklch(0.15 0.03 140);
+  --sidebar-accent-foreground: oklch(0.95 0.05 140);
+  --sidebar-border: oklch(0.25 0.05 140);
+  --sidebar-ring: oklch(0.8 0.2 140);
+  --sidebar-muted-foreground: oklch(0.7 0.05 140);
+}
+
+[data-theme='midnight'] {
+  --background: oklch(0.1 0.05 260); /* Dark Navy */
+  --foreground: oklch(0.95 0.05 260);
+  --card: oklch(0.15 0.05 260);
+  --card-foreground: oklch(0.95 0.05 260);
+  --popover: oklch(0.15 0.05 260);
+  --popover-foreground: oklch(0.95 0.05 260);
+  --primary: oklch(0.7 0.2 260); /* Bright Blue */
+  --primary-foreground: oklch(0.1 0.05 260);
+  --secondary: oklch(0.25 0.1 260);
+  --secondary-foreground: oklch(0.95 0.05 260);
+  --muted: oklch(0.25 0.1 260);
+  --muted-foreground: oklch(0.7 0.05 260);
+  --accent: oklch(0.7 0.2 260);
+  --accent-foreground: oklch(0.1 0.05 260);
+  --destructive: oklch(0.6 0.2 25);
+  --destructive-foreground: oklch(0.95 0.05 260);
+  --border: oklch(0.3 0.1 260);
+  --input: oklch(0.3 0.1 260);
+  --ring: oklch(0.7 0.2 260);
+  --chart-1: oklch(0.7 0.2 260);
+  --chart-2: oklch(0.65 0.2 280);
+  --chart-3: oklch(0.6 0.2 300);
+  --chart-4: oklch(0.55 0.2 320);
+  --chart-5: oklch(0.5 0.2 340);
+  --sidebar: oklch(0.1 0.05 260);
+  --sidebar-foreground: oklch(0.95 0.05 260);
+  --sidebar-primary: oklch(0.7 0.2 260);
+  --sidebar-primary-foreground: oklch(0.1 0.05 260);
+  --sidebar-accent: oklch(0.2 0.08 260);
+  --sidebar-accent-foreground: oklch(0.95 0.05 260);
+  --sidebar-border: oklch(0.3 0.1 260);
+  --sidebar-ring: oklch(0.7 0.2 260);
+  --sidebar-muted-foreground: oklch(0.7 0.05 260);
 }
 
 @theme inline {
@@ -200,42 +310,31 @@
   /* Keep it simple - no GPU tricks */
 }
 
-/* Instant page navigation - zero lag */
+/* Smooth global transitions */
 * {
-  /* Disable all transitions during navigation */
-  transition: none !important;
+  transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Only enable transitions for hover states */
-*:hover {
-  transition: border-color 0.1s ease, background-color 0.1s ease !important;
-}
-
-/* Optimize rendering for instant page loads */
+/* Optimize rendering for smooth experience */
 html {
-  content-visibility: auto;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  /* Prevent render blocking */
+  /* Prevent layout shift */
   contain: layout style;
 }
 
-/* Instant link navigation */
+/* Smooth link interactions */
 a {
-  /* Prefetch and preload aggressively */
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Disable all page transition animations */
-@media (prefers-reduced-motion: no-preference) {
-  * {
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-  }
-}
-
-/* Keep only essential animations */
+/* Keep essential animations running */
 .animate-scroll,
 .animate-spin,
 .animate-pulse {
@@ -348,4 +447,37 @@ a {
   background: var(--accent);
   border: 2px dashed var(--primary);
   border-radius: var(--radius);
+}
+
+/* Smooth interactive elements */
+button,
+[role="button"],
+input,
+select,
+textarea,
+[type="checkbox"],
+[type="radio"] {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active,
+[role="button"]:active {
+  transform: scale(0.98);
+}
+
+/* Smooth slider styling */
+[data-fancy="true"] {
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hide TradingView branding logo from lightweight-charts */
+.tv-lightweight-charts a[href*="tradingview"],
+.tv-lightweight-charts [class*="apply-common"] a,
+div[class*="chart"] a[target="_blank"][href*="tradingview"],
+a[href="https://www.tradingview.com/"],
+[class*="tv-lightweight"] a {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }

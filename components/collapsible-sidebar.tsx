@@ -3,9 +3,17 @@
 import { useState, useEffect, memo } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, GitBranch, Database, Users, TrendingUp, Settings, Moon, Sun, Activity, ScrollText, Eye, Type, AlertTriangle, Brain } from 'lucide-react'
+import { ChevronLeft, GitBranch, Moon, Sun, ScrollText, Type, Activity, TrendingUp, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppState } from '@/contexts/app-state-context'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface NavItem {
   icon: React.ElementType
@@ -16,15 +24,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Activity, label: 'All Fills', command: 'fills', href: '/all-fills', badge: 'LIVE' },
-  { icon: AlertTriangle, label: 'Liquidations', command: 'liq', href: '/liquidations', badge: 'LIVE' },
-  { icon: Brain, label: 'Insilico Intel', command: 'insilico', href: '/insilico-intel', badge: 'LIVE' },
-  { icon: Eye, label: 'L4 Orders', command: 'l4', href: '/l4-orders', badge: 'NEW' },
-  { icon: GitBranch, label: 'Pivot Analysis', command: 'pivot', href: '/pivot-analysis', badge: 'SOON' },
-  { icon: Database, label: 'Data', command: 'db', href: '/data' },
-  { icon: TrendingUp, label: 'Analytics', command: 'stats', href: '/analytics', badge: 'NEW' },
-  { icon: Users, label: 'Users', command: 'users', href: '/users' },
-  { icon: Settings, label: 'Settings', command: 'config', href: '/settings' },
+  { icon: Activity, label: 'Screener', command: 'screener', href: '/screener' },
+  { icon: Globe, label: 'Landscape', command: 'landscape', href: '/landscape' },
+  { icon: TrendingUp, label: 'Positioning', command: 'positioning', href: '/positioning' },
+  { icon: GitBranch, label: 'Pivot Analysis', command: 'pivot', href: '/pivot-analysis' },
 ]
 
 const accentColors = [
@@ -36,29 +39,41 @@ const accentColors = [
   { name: 'pink', value: 'oklch(0.70 0.22 350)', label: 'PNK' },
 ]
 
+const themes = [
+  { id: 'light', label: 'Light', icon: Sun },
+  { id: 'dark', label: 'Dark', icon: Moon },
+]
+
 export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
-  const [isDark, setIsDark] = useState(false)
-  const [accentColor, setAccentColor] = useState('green')
+  
+  // Initialize from DOM state
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light'
+    return document.documentElement.getAttribute('data-theme') || 'light'
+  })
+  
+  const [accentColor, setAccentColor] = useState(() => {
+    if (typeof window === 'undefined') return 'green'
+    return localStorage.getItem('accentColor') || 'green'
+  })
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false)
   const { screenerSettings, updateScreenerSettings, fontTheme, toggleFontTheme } = useAppState()
 
+  // Track mount state to avoid hydration mismatch
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme')
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark)
-    setIsDark(shouldBeDark)
-    
-    if (shouldBeDark) {
-      document.documentElement.classList.add('dark')
-    }
+    setMounted(true)
+  }, [])
 
+  useEffect(() => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light'
+    setTheme(currentTheme)
+    
     const savedAccent = localStorage.getItem('accentColor')
     if (savedAccent) {
       setAccentColor(savedAccent)
-      applyAccentColor(savedAccent)
     }
   }, [])
 
@@ -73,16 +88,15 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
     }
   }
 
-  const toggleDarkMode = () => {
-    const newDarkState = !isDark
-    setIsDark(newDarkState)
+  const changeTheme = (newTheme: string) => {
+    setTheme(newTheme)
+    document.documentElement.setAttribute('data-theme', newTheme)
+    localStorage.setItem('theme', newTheme)
     
-    if (newDarkState) {
+    if (newTheme === 'dark') {
       document.documentElement.classList.add('dark')
-      localStorage.setItem('theme', 'dark')
     } else {
       document.documentElement.classList.remove('dark')
-      localStorage.setItem('theme', 'light')
     }
   }
 
@@ -104,6 +118,9 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isColorPickerOpen])
+
+  // Use Sun as default for SSR, then actual theme icon after mount
+  const CurrentThemeIcon = mounted ? (themes.find(t => t.id === theme)?.icon || Sun) : Sun
 
   return (
     <aside
@@ -144,7 +161,7 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
         <ul className="space-y-0.5 px-2">
           {navItems.map((item, index) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || (pathname === '/' && item.href === '/all-fills')
+            const isActive = pathname === item.href || (pathname === '/' && item.href === '/pivot-analysis')
 
             return (
               <li key={index}>
@@ -220,12 +237,13 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
             isCollapsed && 'justify-center px-1'
           )}
           aria-label="Toggle font theme"
+          suppressHydrationWarning
         >
           <Type className="h-5 w-5 shrink-0" />
           {!isCollapsed && (
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="font-semibold tracking-tight truncate text-[11px]">
-                {fontTheme === 'alpina' ? 'GT Alpina' : 'Default Sans'}
+            <div className="flex flex-col gap-0.5 min-w-0" suppressHydrationWarning>
+              <span className="font-semibold tracking-tight truncate text-[11px]" suppressHydrationWarning>
+                {mounted ? (fontTheme === 'alpina' ? 'GT Alpina' : 'Default Sans') : 'Default Sans'}
               </span>
               <span className="text-[9px] text-sidebar-muted-foreground truncate">
                 $ font_family
@@ -235,30 +253,44 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
         </button>
 
         <div className="flex gap-2">
-          <button
-            onClick={toggleDarkMode}
-            className={cn(
-              'flex-1 flex items-center gap-2 px-2 py-2.5 border-2 border-sidebar-border hover:bg-sidebar-accent transition-colors font-mono text-xs text-sidebar-muted-foreground',
-              isCollapsed && 'justify-center px-1'
-            )}
-            aria-label="Toggle dark mode"
-          >
-            {isDark ? (
-              <Sun className="h-5 w-5 shrink-0" />
-            ) : (
-              <Moon className="h-5 w-5 shrink-0" />
-            )}
-            {!isCollapsed && (
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="font-semibold tracking-tight truncate text-[11px]">
-                  {isDark ? 'Light' : 'Dark'}
-                </span>
-                <span className="text-[9px] text-sidebar-muted-foreground truncate">
-                  $ theme
-                </span>
-              </div>
-            )}
-          </button>
+          {/* Theme Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  'flex-1 flex items-center gap-2 px-2 py-2.5 border-2 border-sidebar-border hover:bg-sidebar-accent transition-colors font-mono text-xs text-sidebar-muted-foreground',
+                  isCollapsed && 'justify-center px-1'
+                )}
+                aria-label="Change theme"
+                suppressHydrationWarning
+              >
+                <CurrentThemeIcon className="h-5 w-5 shrink-0" />
+                {!isCollapsed && (
+                  <div className="flex flex-col gap-0.5 min-w-0 text-left" suppressHydrationWarning>
+                    <span className="font-semibold tracking-tight truncate text-[11px]" suppressHydrationWarning>
+                      {mounted ? (themes.find(t => t.id === theme)?.label || 'Theme') : 'Theme'}
+                    </span>
+                    <span className="text-[9px] text-sidebar-muted-foreground truncate">
+                      $ theme
+                    </span>
+                  </div>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuLabel>Select Theme</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {themes.map((t) => (
+                <DropdownMenuItem key={t.id} onClick={() => changeTheme(t.id)}>
+                  <t.icon className="mr-2 h-4 w-4" />
+                  <span>{t.label}</span>
+                  {theme === t.id && (
+                    <span className="ml-auto text-xs text-muted-foreground">Active</span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {!isCollapsed ? (
             <div className="flex-1 relative color-picker-container">
@@ -266,10 +298,12 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
                 onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
                 className="w-full flex items-center gap-2 px-2 py-2.5 border-2 border-sidebar-border hover:bg-sidebar-accent transition-colors font-mono text-xs text-sidebar-muted-foreground"
                 aria-label="Change accent color"
+                suppressHydrationWarning
               >
                 <div 
                   className="h-5 w-5 shrink-0 border-2 border-sidebar-border"
                   style={{ backgroundColor: accentColors.find(c => c.name === accentColor)?.value }}
+                  suppressHydrationWarning
                 />
                 <div className="flex flex-col gap-0.5 min-w-0">
                   <span className="font-semibold tracking-tight truncate text-[11px]">
@@ -306,10 +340,37 @@ export const CollapsibleSidebar = memo(function CollapsibleSidebar() {
             </div>
           ) : (
             <div className="flex-1 flex justify-center items-center">
-              <div 
-                className="h-8 w-8 border-2 border-sidebar-border"
-                style={{ backgroundColor: accentColors.find(c => c.name === accentColor)?.value }}
-              />
+              <button
+                onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+                className="h-full w-full flex justify-center items-center"
+              >
+                <div 
+                  className="h-8 w-8 border-2 border-sidebar-border"
+                  style={{ backgroundColor: accentColors.find(c => c.name === accentColor)?.value }}
+                />
+              </button>
+              {isColorPickerOpen && (
+                <div className="absolute left-16 bottom-0 w-32 bg-sidebar border-2 border-sidebar-border z-50">
+                  <div className="p-2 space-y-1">
+                    {accentColors.map((color) => (
+                      <button
+                        key={color.name}
+                        onClick={() => changeAccentColor(color.name)}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-2 py-1.5 border border-sidebar-border hover:bg-sidebar-accent transition-colors font-mono text-xs',
+                          accentColor === color.name && 'bg-sidebar-accent border-sidebar-primary'
+                        )}
+                      >
+                        <div 
+                          className="h-4 w-4 shrink-0 border border-sidebar-border"
+                          style={{ backgroundColor: color.value }}
+                        />
+                        <span className="text-sidebar-foreground font-semibold">{color.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

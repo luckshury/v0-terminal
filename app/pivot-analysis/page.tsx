@@ -899,15 +899,59 @@ export default function PivotAnalysisPage() {
     setError(null)
 
     try {
-      const startMs = dateRange.from.getTime()
-      const endMs = dateRange.to.getTime()
+      let startMs = dateRange.from.getTime()
+      let endMs = dateRange.to.getTime()
+      const nowMs = Date.now()
+      const oneHourMs = 60 * 60 * 1000
       
-      const daysDiff = Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24))
-      const hoursNeeded = daysDiff * 24
+      if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) {
+        throw new Error('Invalid date range')
+      }
+      
+      if (endMs < startMs) {
+        const temp = startMs
+        startMs = endMs
+        endMs = temp
+      }
+      
+      if (endMs > nowMs) {
+        endMs = nowMs
+      }
+      
+      if (startMs > nowMs) {
+        startMs = nowMs - oneHourMs
+      }
+      
+      // Ensure we always request at least one hour of data
+      if (endMs - startMs < oneHourMs) {
+        startMs = Math.max(0, endMs - oneHourMs)
+      }
+      
+      const daysDiff = Math.max(1, Math.ceil((endMs - startMs) / (1000 * 60 * 60 * 24)))
+      
+      // Limit to reasonable date range to avoid rate limiting
+      if (daysDiff > 365) {
+        throw new Error('Date range cannot exceed 365 days. Please select a shorter period.')
+      }
+      
+      const hoursNeeded = Math.max(1, Math.ceil((endMs - startMs) / (1000 * 60 * 60)))
       const maxCandlesPerRequest = 1000
-      const chunks = Math.ceil(hoursNeeded / maxCandlesPerRequest)
+      const chunks = Math.max(1, Math.ceil(hoursNeeded / maxCandlesPerRequest))
+      
+      // Log for debugging
+      console.log(`Fetching ${daysDiff} days (${hoursNeeded} hours) in ${chunks} chunks for ${ticker}`)
       
       let allCandles: any[] = []
+      
+      const fetchWithTimeout = async (url: string, timeoutMs: number) => {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+        try {
+          return await fetch(url, { signal: controller.signal })
+        } finally {
+          clearTimeout(timeoutId)
+        }
+      }
       
       for (let i = 0; i < chunks; i++) {
         const chunkStart = startMs + (i * maxCandlesPerRequest * 60 * 60 * 1000)
@@ -924,10 +968,28 @@ export default function PivotAnalysisPage() {
           limit: '1000',
         })
         
-        const response = await fetch(`/api/bybit-intraday?${params.toString()}`)
+        // Add delay between requests to avoid rate limiting (except for first request)
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)) // 200ms delay
+        }
+        
+        const response = await fetchWithTimeout(
+          `/api/bybit-intraday?${params.toString()}`,
+          15000
+        )
         
         if (!response.ok) {
-          throw new Error(`Failed to fetch data: ${response.status}`)
+          const errorData = await response.json().catch(() => ({}))
+          const errorMsg = errorData.retMsg || `API returned status ${response.status}`
+          
+          // Provide more helpful error messages
+          if (response.status === 403) {
+            throw new Error(`Access forbidden (403): ${errorMsg}. Try reducing the date range or waiting a moment before retrying. Bybit may be rate limiting or blocking requests.`)
+          } else if (response.status === 429) {
+            throw new Error(`Rate limit exceeded (429): ${errorMsg}. Please wait a moment before retrying.`)
+          } else {
+            throw new Error(`Failed to fetch data: ${errorMsg}`)
+          }
         }
         
         const result = await response.json()
@@ -982,7 +1044,10 @@ export default function PivotAnalysisPage() {
             limit: '100',
           })
           
-          const response15m = await fetch(`/api/bybit-intraday?${params15m.toString()}`)
+          const response15m = await fetchWithTimeout(
+            `/api/bybit-intraday?${params15m.toString()}`,
+            15000
+          )
           if (response15m.ok) {
             const result15m = await response15m.json()
             if (result15m.retCode === 0 && result15m.result?.list) {
@@ -1379,7 +1444,7 @@ export default function PivotAnalysisPage() {
         </Select>
 
         {/* Intensity Slider */}
-        <div className="flex items-center gap-2 w-32">
+        <div className="flex items-center gap-3 w-52">
           <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">Int:</span>
           <Slider
             value={intensity}
@@ -1388,6 +1453,7 @@ export default function PivotAnalysisPage() {
             max={2.0}
             step={0.1}
             className="flex-1"
+            fancy
           />
           <span className="text-xs text-muted-foreground font-mono w-8">{intensity[0].toFixed(1)}</span>
         </div>

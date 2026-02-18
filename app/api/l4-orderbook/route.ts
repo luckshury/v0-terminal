@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server'
 
+// Hydromancer disabled - no points remaining
+const HYDROMANCER_ENABLED = false;
+
 const HYDROMANCER_API_URL = 'https://api.hydromancer.xyz'
 const API_KEY = process.env.HYDROMANCER_API_KEY || 'sk_nNhuLkdGdW5sxnYec33C2FBPzLjXBnEd'
 
 export async function GET() {
+  if (!HYDROMANCER_ENABLED) {
+    return NextResponse.json(
+      { error: 'Hydromancer API disabled - no points remaining' },
+      { status: 503 }
+    )
+  }
+
   try {
     // Test L4 orderbook access by checking the l4SnapshotTimestamp endpoint
     // This is the recommended way to verify access per Hydromancer docs

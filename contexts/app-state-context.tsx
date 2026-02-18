@@ -298,8 +298,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   // Watchlists (persistent across navigation)
   const [watchlists, setWatchlists] = useState<Watchlist[]>([])
 
-  // Font theme state
-  const [fontTheme, setFontTheme] = useState<'default' | 'alpina'>('default')
+  // Font theme state - initialize from DOM to match blocking script
+  const [fontTheme, setFontTheme] = useState<'default' | 'alpina'>(() => {
+    if (typeof window === 'undefined') return 'default'
+    const domFont = document.documentElement.getAttribute('data-font')
+    return domFont === 'alpina' ? 'alpina' : 'default'
+  })
 
   // Load persisted settings on mount
   useEffect(() => {
@@ -309,9 +313,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setPivotAnalysisSettings(loadPivotAnalysisSettings())
     setWatchlists(loadWatchlists())
     
-    const savedFont = localStorage.getItem('font-theme')
-    if (savedFont === 'alpina' || savedFont === 'default') {
-      setFontTheme(savedFont)
+    // Sync font theme from DOM (already set by blocking script)
+    const domFont = document.documentElement.getAttribute('data-font')
+    if (domFont === 'alpina' || domFont === 'default') {
+      setFontTheme(domFont)
     }
   }, [])
 
@@ -573,7 +578,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // REST API polling effect - replaces WebSocket connection
+  // REST API polling disabled - no automatic fetching
+  // To re-enable, uncomment the polling logic below
+  /*
   useEffect(() => {
     let mounted = true
 
@@ -603,6 +610,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [fetchAllHyperliquidTickers, fetchAllBybitTickers, screenerSettings.exchange])
+  */
 
   const tickerList = useMemo(() => Object.values(tickers), [tickers])
 

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import WebSocket from 'ws';
 
+// Toggle to fully disable Hydromancer liquidations stream
+const HYDROMANCER_ENABLED = false;
+
 // Types
 interface LiquidationFillDetails {
   coin: string;
@@ -278,17 +281,24 @@ class LiquidationStreamManager {
   }
 }
 
-// Initialize the singleton instance when module loads
-const streamManager = LiquidationStreamManager.getInstance();
+// Initialize the singleton instance when enabled
+const streamManager = HYDROMANCER_ENABLED ? LiquidationStreamManager.getInstance() : null;
 
 // Ensure cleanup on process termination
-if (typeof process !== 'undefined') {
+if (typeof process !== 'undefined' && streamManager) {
   process.on('SIGTERM', () => streamManager.shutdown());
   process.on('SIGINT', () => streamManager.shutdown());
 }
 
 // API Route Handler - GET endpoint for polling
 export async function GET(request: NextRequest) {
+  if (!HYDROMANCER_ENABLED || !streamManager) {
+    return NextResponse.json(
+      { disabled: true, reason: 'Hydromancer liquidations stream disabled' },
+      { status: 503 }
+    );
+  }
+
   const searchParams = request.nextUrl.searchParams;
   const limit = parseInt(searchParams.get('limit') || '5000');
   const health = searchParams.get('health') === 'true';
@@ -315,6 +325,13 @@ export async function GET(request: NextRequest) {
 
 // Force reconnect endpoint (for debugging/admin)
 export async function POST(request: NextRequest) {
+  if (!HYDROMANCER_ENABLED || !streamManager) {
+    return NextResponse.json(
+      { disabled: true, reason: 'Hydromancer liquidations stream disabled' },
+      { status: 503 }
+    );
+  }
+
   const body = await request.json();
   
   if (body.action === 'reconnect') {
